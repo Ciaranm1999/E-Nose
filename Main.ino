@@ -38,7 +38,7 @@ const int CALIBRATION_INTERVAL = 250;  // Reduced from 500 to speed up startup
 const int LED_PIN = 2;
 bool bmeAvailable = false;
 
-const unsigned long PUBLISH_INTERVAL = 10000; // 10 seconds
+const unsigned long PUBLISH_INTERVAL = 120000; // 10 seconds
 const unsigned long RESET_INTERVAL = 15UL * 60UL * 1000UL; // 15 minutes
 unsigned long lastPublishTime = 0;
 unsigned long startTime = 0;
