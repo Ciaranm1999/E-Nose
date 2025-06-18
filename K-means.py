@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # Load your data
-df = pd.read_csv('Data/batch_one_filtered.csv')
+df = pd.read_csv('Filter_CSV_Data/Data/batch_two/batch_two_early_data_filtered.csv')
 
 # 1. Run K-Means
 X = df[['MQ3_Bottom_Analog']].values

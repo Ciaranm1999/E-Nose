@@ -14,7 +14,7 @@ from Feature_Extraction import engineer_features
 os.makedirs('models', exist_ok=True)
 
 # Load the filtered data
-df = pd.read_csv('Data/batch_one_filtered.csv')
+df = pd.read_csv('Data/batch_two/batch_two_early_data_filtered.csv')
 
 # Feature engineering
 df = engineer_features(df, diff_window=5)
