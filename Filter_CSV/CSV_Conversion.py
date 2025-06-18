@@ -3,8 +3,8 @@ import json
 from datetime import datetime
 
 # === CONFIGURATION ===
-input_file = "batch_one_data.csv"
-output_file = "batch_one_data_converted.csv"
+input_file = r"Data\batch_two\batch_two_early_data.csv"
+output_file = r"Data\batch_two\batch_two_five_data_converted.csv"
 time_format = "%Y-%m-%d %H:%M:%S"  # Update this if your timestamp format differs
 
 # === READ CSV ===
