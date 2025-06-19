@@ -42,6 +42,10 @@ df_structured["Timestamp"] = pd.to_datetime(df_structured["Timestamp"], errors="
 last_time = df_structured["Timestamp"].max()
 df_structured["Time_to_Spoilage_Minutes"] = ((last_time - df_structured["Timestamp"]).dt.total_seconds() // 60).astype(int)
 
+# === CALCULATE TIME FROM START (in seconds, no decimals) ===
+first_time = df_structured["Timestamp"].min()
+df_structured["Time_from_Start_Minutes"] = ((df_structured["Timestamp"] - first_time).dt.total_seconds() // 60).astype(int)
+
 # === EXPORT TO CSV ===
 df_structured.to_csv(output_file, index=False)
 
