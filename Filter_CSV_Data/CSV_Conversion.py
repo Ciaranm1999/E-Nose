@@ -3,8 +3,8 @@ import json
 from datetime import datetime
 
 # === CONFIGURATION ===
-input_file = "Data/batch_two/batch_two_early_data.csv"
-output_file = "Data/batch_two/batch_two_early_data_converted.csv"
+input_file = "Data/batch_two/raw_data.csv"
+output_file = "Data/batch_two/converted_data.csv"
 time_format = "%Y-%m-%d %H:%M:%S"  # Update this if your timestamp format differs
 
 # === READ CSV ===
@@ -40,11 +40,15 @@ df_structured["Timestamp"] = pd.to_datetime(df_structured["Timestamp"], errors="
 
 # === CALCULATE TIME TO SPOILAGE (in minutes, no decimals) ===
 last_time = df_structured["Timestamp"].max()
-df_structured["Time_to_Spoilage_Minutes"] = ((last_time - df_structured["Timestamp"]).dt.total_seconds() // 60).astype(int)
+df_structured["Time_to_Spoilage_Minutes"] = (
+    (last_time - df_structured["Timestamp"]).dt.total_seconds() // 60
+).astype('Int64')  # Nullable integer type
 
 # === CALCULATE TIME FROM START (in seconds, no decimals) ===
 first_time = df_structured["Timestamp"].min()
-df_structured["Time_from_Start_Minutes"] = ((df_structured["Timestamp"] - first_time).dt.total_seconds() // 60).astype(int)
+df_structured["Time_from_Start_Minutes"] = (
+    (df_structured["Timestamp"] - first_time).dt.total_seconds() // 60
+).astype('Int64')
 
 # === EXPORT TO CSV ===
 df_structured.to_csv(output_file, index=False)

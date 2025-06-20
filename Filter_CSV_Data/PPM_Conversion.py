@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 
 # --- Parameters ---
-INPUT_CSV = 'Data/batch_one/batch_one_filtered.csv'
-OUTPUT_CSV = 'Data/batch_one/batch_one_complete.csv'
+INPUT_CSV = 'Data/batch_two/filtered_data.csv'
+OUTPUT_CSV = 'Data/batch_two/complete_data.csv'
 
 # Set your calibration constants here
 R0_MQ3_Bottom = 6.0
