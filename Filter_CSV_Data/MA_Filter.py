@@ -7,6 +7,15 @@ df = pd.read_csv('Data/batch_two/converted_data.csv')
 # Columns to exclude from moving average/trend calculation
 exclude_cols = ['Timestamp', 'time', 'Time_to_Spoilage_Minutes', 'Time_from_Start_Minutes' ]
 
+for col in ['BME_VOC_Ohm']:
+    df.loc[df[col] < 2.5, col] = np.nan
+
+for col in ['BME_Temp']:
+    df.loc[df[col] < 24, col] = np.nan
+
+for col in ['BME_Humidity']:
+    df.loc[df[col] < 70, col] = np.nan
+
 # Cap PPM values at 300 (set anything above 300 to NaN)
 for col in ['MQ3_Bottom_PPM', 'MQ3_Top_PPM']:
     df.loc[df[col] > 300, col] = np.nan
