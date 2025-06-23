@@ -7,7 +7,7 @@ OUTPUT_CSV = 'Data/batch_two/complete_data.csv'
 
 # Set your calibration constants here
 R0_MQ3_Bottom = 6.0
-R0_MQ3_Top = 5.0
+R0_MQ3_Top = 7.0
 RL_VALUE = 10.0  # kOhms
 Vc = 5.0         # Supply voltage
 
