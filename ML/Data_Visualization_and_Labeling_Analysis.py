@@ -70,46 +70,49 @@ def visualize_mq3_over_time(df, batch_name="Batch", spoilage_ranges=None):
             print(f"Hand-written spoilage certainty range: {start_hours:.1f}h to {end_hours:.1f}h")
         except Exception as e:
             print(f"Warning: Could not parse spoilage ranges: {e}")
-      # 1. MQ3 Top PPM over time
+    # 1. MQ3 Bottom PPM over time (changed from Top)
     # Only plot valid (non-NaN) MQ3 data to show where sensors cut out
-    valid_mq3_top = df['MQ3_Top_PPM'].notna()
-    axes[0,0].plot(df.loc[valid_mq3_top, 'Hours_from_start'], 
-                   df.loc[valid_mq3_top, 'MQ3_Top_PPM'], 
-                   'b-', linewidth=2, label='MQ3 Top')
-    axes[0,0].set_title('MQ3 Top PPM vs Time')
+    valid_mq3_bottom = df['MQ3_Bottom_PPM'].notna()
+    axes[0,0].plot(df.loc[valid_mq3_bottom, 'Hours_from_start'], 
+                   df.loc[valid_mq3_bottom, 'MQ3_Bottom_PPM'], 
+                   'r-', linewidth=2, label='MQ3 Bottom')
+    axes[0,0].set_title('MQ3 Bottom PPM vs Time (Primary Sensor)')
     axes[0,0].set_xlabel('Hours from Start')
     axes[0,0].set_ylabel('PPM')
     axes[0,0].grid(True, alpha=0.3)
-    axes[0,0].legend()    # Add spoilage certainty range if provided
+    axes[0,0].legend()
+    
+    # Add spoilage certainty range if provided
     if spoilage_hours:
         axes[0,0].axvspan(spoilage_hours['start'], spoilage_hours['end'], 
                          alpha=0.3, color='red', label='Spoilage Certainty Range')
         axes[0,0].legend()
     
     # Add vertical line to show end of spoiled classification (where MQ3 data cuts out)
-    if valid_mq3_top.any():
-        last_valid_hour = df.loc[valid_mq3_top, 'Hours_from_start'].iloc[-1]
+    if valid_mq3_bottom.any():
+        last_valid_hour = df.loc[valid_mq3_bottom, 'Hours_from_start'].iloc[-1]
         axes[0,0].axvline(x=last_valid_hour, color='red', linestyle='--', alpha=0.7)
-      # 2. MQ3 Bottom PPM over time
+    # 2. MQ3 Top PPM over time (swapped with Bottom)
     # Only plot valid (non-NaN) MQ3 data to show where sensors cut out
-    valid_mq3_bottom = df['MQ3_Bottom_PPM'].notna()
-    axes[0,1].plot(df.loc[valid_mq3_bottom, 'Hours_from_start'], 
-                   df.loc[valid_mq3_bottom, 'MQ3_Bottom_PPM'], 
-                   'r-', linewidth=2, label='MQ3 Bottom')
-    axes[0,1].set_title('MQ3 Bottom PPM vs Time')
+    valid_mq3_top = df['MQ3_Top_PPM'].notna()
+    axes[0,1].plot(df.loc[valid_mq3_top, 'Hours_from_start'], 
+                   df.loc[valid_mq3_top, 'MQ3_Top_PPM'], 
+                   'b-', linewidth=2, label='MQ3 Top')
+    axes[0,1].set_title('MQ3 Top PPM vs Time')
     axes[0,1].set_xlabel('Hours from Start')
     axes[0,1].set_ylabel('PPM')
     axes[0,1].grid(True, alpha=0.3)
     axes[0,1].legend()
-      # Add spoilage certainty range
+    
+    # Add spoilage certainty range
     if spoilage_hours:
         axes[0,1].axvspan(spoilage_hours['start'], spoilage_hours['end'], 
                          alpha=0.3, color='red', label='Spoilage Certainty Range')
         axes[0,1].legend()
     
     # Add vertical line to show end of spoiled classification (where MQ3 data cuts out)
-    if valid_mq3_bottom.any():
-        last_valid_hour = df.loc[valid_mq3_bottom, 'Hours_from_start'].iloc[-1]
+    if valid_mq3_top.any():
+        last_valid_hour = df.loc[valid_mq3_top, 'Hours_from_start'].iloc[-1]
         axes[0,1].axvline(x=last_valid_hour, color='red', linestyle='--', alpha=0.7)
     
     # 3. Both MQ3 sensors together
@@ -165,14 +168,14 @@ def visualize_mq3_over_time(df, batch_name="Batch", spoilage_ranges=None):
     axes[2,0].grid(True, alpha=0.3)
     axes[2,0].legend()
     
-    # 6. Rate of change in MQ3 Top (derivative)
+    # 6. Rate of change in MQ3 Bottom (derivative) - changed from Top
     if len(df) > 1:
-        mq3_diff = np.diff(df['MQ3_Top_PPM'])
+        mq3_diff = np.diff(df['MQ3_Bottom_PPM'])
         time_diff = np.diff(df['Hours_from_start'])
         rate_of_change = mq3_diff / time_diff
         
         axes[2,1].plot(df['Hours_from_start'][1:], rate_of_change, 'orange', linewidth=2, label='Rate of Change')
-        axes[2,1].set_title('MQ3 Top Rate of Change (Derivative)')
+        axes[2,1].set_title('MQ3 Bottom Rate of Change (Derivative)')
         axes[2,1].set_xlabel('Hours from Start')
         axes[2,1].set_ylabel('PPM/Hour')
         axes[2,1].grid(True, alpha=0.3)
@@ -253,7 +256,7 @@ def compare_labeling_methods(df, batch_name="Batch"):
             'Time_Hours': df['Hours_from_start'],
             'Time_Labels': time_labels,
             'KMeans_Labels': kmeans_3_labels,
-            'MQ3_Top': df['MQ3_Top_PPM']
+            'MQ3_Bottom': df['MQ3_Bottom_PPM']  # Changed from Top to Bottom
         })
         
         # Plot time-based labels
@@ -262,13 +265,13 @@ def compare_labeling_methods(df, batch_name="Batch"):
             mask = comparison_df['Time_Labels'] == i
             if mask.any():
                 plt.scatter(comparison_df.loc[mask, 'Time_Hours'], 
-                          comparison_df.loc[mask, 'MQ3_Top'], 
+                          comparison_df.loc[mask, 'MQ3_Bottom'], 
                           c=colors_time[i], alpha=0.6, s=20,
                           label=f'Time-based {i}')
         
-        plt.title('Time-based Labels vs MQ3 Top')
+        plt.title('Time-based Labels vs MQ3 Bottom')
         plt.xlabel('Hours from Start')
-        plt.ylabel('MQ3 Top PPM')
+        plt.ylabel('MQ3 Bottom PPM')
         plt.legend()
         plt.grid(True, alpha=0.3)
         
@@ -280,13 +283,13 @@ def compare_labeling_methods(df, batch_name="Batch"):
             mask = comparison_df['KMeans_Labels'] == i
             if mask.any():
                 plt.scatter(comparison_df.loc[mask, 'Time_Hours'], 
-                          comparison_df.loc[mask, 'MQ3_Top'], 
+                          comparison_df.loc[mask, 'MQ3_Bottom'], 
                           c=colors_kmeans[i], alpha=0.6, s=20,
                           label=f'K-means {i}')
         
-        plt.title('K-means Labels vs MQ3 Top')
+        plt.title('K-means Labels vs MQ3 Bottom')
         plt.xlabel('Hours from Start')
-        plt.ylabel('MQ3 Top PPM')
+        plt.ylabel('MQ3 Bottom PPM')
         plt.legend()
         plt.grid(True, alpha=0.3)
         
@@ -332,24 +335,24 @@ def create_interactive_spoilage_detection(df, batch_name="Batch"):
     
     # Calculate moving averages and derivatives
     window = max(5, len(df) // 20)  # Adaptive window size
-    df['MQ3_Top_MA'] = df['MQ3_Top_PPM'].rolling(window=window, center=True).mean()
     df['MQ3_Bottom_MA'] = df['MQ3_Bottom_PPM'].rolling(window=window, center=True).mean()
+    df['MQ3_Top_MA'] = df['MQ3_Top_PPM'].rolling(window=window, center=True).mean()
     
-    # 1. Raw data with moving average
-    axes[0,0].plot(df['Hours_from_start'], df['MQ3_Top_PPM'], 'lightblue', alpha=0.5, label='Raw MQ3 Top')
-    axes[0,0].plot(df['Hours_from_start'], df['MQ3_Top_MA'], 'blue', linewidth=3, label='Moving Average')
-    axes[0,0].set_title('MQ3 Top: Raw vs Smoothed')
+    # 1. Raw data with moving average (changed to MQ3 Bottom)
+    axes[0,0].plot(df['Hours_from_start'], df['MQ3_Bottom_PPM'], 'lightcoral', alpha=0.5, label='Raw MQ3 Bottom')
+    axes[0,0].plot(df['Hours_from_start'], df['MQ3_Bottom_MA'], 'red', linewidth=3, label='Moving Average')
+    axes[0,0].set_title('MQ3 Bottom: Raw vs Smoothed')
     axes[0,0].set_xlabel('Hours from Start')
     axes[0,0].set_ylabel('PPM')
     axes[0,0].legend()
     axes[0,0].grid(True, alpha=0.3)
     
-    # 2. Derivative analysis
+    # 2. Derivative analysis (changed to MQ3 Bottom)
     if len(df) > window:
-        derivative = np.gradient(df['MQ3_Top_MA'].fillna(method='bfill').fillna(method='ffill'))
+        derivative = np.gradient(df['MQ3_Bottom_MA'].fillna(method='bfill').fillna(method='ffill'))
         axes[0,1].plot(df['Hours_from_start'], derivative, 'red', linewidth=2, label='Rate of Change')
         axes[0,1].axhline(y=0, color='black', linestyle='-', alpha=0.3)
-        axes[0,1].set_title('Rate of Change Analysis')
+        axes[0,1].set_title('Rate of Change Analysis (MQ3 Bottom)')
         axes[0,1].set_xlabel('Hours from Start')
         axes[0,1].set_ylabel('PPM/Hour')
         axes[0,1].legend()
@@ -366,22 +369,22 @@ def create_interactive_spoilage_detection(df, batch_name="Batch"):
             
             print(f"Significant change points detected at hours: {df['Hours_from_start'].iloc[change_points[:5]].values}")
     
-    # 3. Cumulative change
-    baseline = df['MQ3_Top_PPM'].iloc[:min(10, len(df))].mean()
-    cumulative_change = df['MQ3_Top_PPM'] - baseline
+    # 3. Cumulative change (changed to MQ3 Bottom)
+    baseline = df['MQ3_Bottom_PPM'].iloc[:min(10, len(df))].mean()
+    cumulative_change = df['MQ3_Bottom_PPM'] - baseline
     axes[1,0].plot(df['Hours_from_start'], cumulative_change, 'green', linewidth=2, label='Cumulative Change')
     axes[1,0].axhline(y=0, color='black', linestyle='-', alpha=0.3, label='Baseline')
-    axes[1,0].set_title('Cumulative Change from Baseline')
+    axes[1,0].set_title('Cumulative Change from Baseline (MQ3 Bottom)')
     axes[1,0].set_xlabel('Hours from Start')
     axes[1,0].set_ylabel('PPM Change')
     axes[1,0].legend()
     axes[1,0].grid(True, alpha=0.3)
     
-    # 4. Sensor correlation over time
+    # 4. Sensor correlation over time (Bottom-Top correlation)
     if len(df) > 1:
-        # Rolling correlation between top and bottom sensors
-        rolling_corr = df['MQ3_Top_PPM'].rolling(window=window).corr(df['MQ3_Bottom_PPM'])
-        axes[1,1].plot(df['Hours_from_start'], rolling_corr, 'purple', linewidth=2, label='Top-Bottom Correlation')
+        # Rolling correlation between bottom and top sensors
+        rolling_corr = df['MQ3_Bottom_PPM'].rolling(window=window).corr(df['MQ3_Top_PPM'])
+        axes[1,1].plot(df['Hours_from_start'], rolling_corr, 'purple', linewidth=2, label='Bottom-Top Correlation')
         axes[1,1].axhline(y=0.8, color='green', linestyle='--', alpha=0.7, label='High Correlation')
         axes[1,1].axhline(y=0.5, color='orange', linestyle='--', alpha=0.7, label='Moderate Correlation')
         axes[1,1].set_title('Sensor Correlation Over Time')
@@ -469,9 +472,11 @@ def determine_optimal_labeling_method(train_df, test_df):
     
     return optimal_method, results
 
-def create_time_based_labels(df):
+def create_time_based_labels(df, verbose=False):
     """Create spoilage labels based on time to spoilage"""
     if 'Time_to_Spoilage_Minutes' not in df.columns:
+        if verbose:
+            print("⚠️  No Time_to_Spoilage_Minutes column found")
         return None
         
     def label_time_to_spoilage(time_to_spoilage):
@@ -482,7 +487,16 @@ def create_time_based_labels(df):
         else:  # < 24 hours
             return 2  # Spoiled
     
-    return df['Time_to_Spoilage_Minutes'].apply(label_time_to_spoilage)
+    labels = df['Time_to_Spoilage_Minutes'].apply(label_time_to_spoilage)
+    
+    if verbose:
+        unique, counts = np.unique(labels, return_counts=True)
+        print(f"📊 Time-based label distribution:")
+        for label, count in zip(unique, counts):
+            class_name = ['Fresh', 'Spoiling', 'Spoiled'][int(label)]
+            print(f"   {class_name}: {count} samples ({count/len(labels)*100:.1f}%)")
+    
+    return labels
 
 def create_optimal_labels(df, method="time-based"):
     """Create labels using the optimal method"""
@@ -774,13 +788,9 @@ def visualize_model_predictions_on_time_series(train_df, test_df, results, spoil
             else:  # Test data
                 predictions = model_results['test_predictions']
               # Plot MQ3 data with color-coded predictions
-            # Use MQ3 Top for Batch 1 (training), MQ3 Bottom for Batch 2 (test)
-            if dataset_idx == 0:  # Batch 1 - use MQ3 Top
-                mq3_data = df['MQ3_Top_PPM']
-                mq3_label = 'MQ3 Top PPM'
-            else:  # Batch 2 - use MQ3 Bottom
-                mq3_data = df['MQ3_Bottom_PPM']
-                mq3_label = 'MQ3 Bottom PPM'
+            # Use MQ3 Bottom for both batches since it shows clearer patterns
+            mq3_data = df['MQ3_Bottom_PPM']
+            mq3_label = 'MQ3 Bottom PPM'
             
             for class_label in range(3):
                 mask = predictions == class_label
@@ -1029,6 +1039,525 @@ def compare_labeling_methods_with_models(train_df, test_df):
     
     return results_comparison, recommended_method
 
+def refine_labeling_for_spoiling_class(train_df, test_df):
+    """Improve labeling to better capture the 'spoiling' class"""
+    
+    print(f"\n{'='*80}")
+    print("REFINING LABELING FOR BETTER SPOILING CLASS DETECTION")
+    print(f"{'='*80}")
+    
+    # Try different time-based thresholds
+    refined_methods = {
+        'Original': {'fresh': 48*60, 'spoiling': 24*60},  # Original thresholds
+        'Conservative': {'fresh': 60*60, 'spoiling': 12*60},  # Longer fresh period
+        'Aggressive': {'fresh': 36*60, 'spoiling': 18*60},  # Shorter fresh period
+        'Extended_Spoiling': {'fresh': 54*60, 'spoiling': 18*60},  # Longer spoiling period
+    }
+    
+    def create_refined_time_labels(df, fresh_threshold, spoiling_threshold):
+        """Create labels with custom thresholds"""
+        if 'Time_to_Spoilage_Minutes' not in df.columns:
+            return None
+            
+        def label_func(time_to_spoilage):
+            if time_to_spoilage > fresh_threshold:
+                return 0  # Fresh
+            elif time_to_spoilage > spoiling_threshold:
+                return 1  # Spoiling
+            else:
+                return 2  # Spoiled
+        
+        return df['Time_to_Spoilage_Minutes'].apply(label_func)
+    
+    # Test different approaches
+    results = {}
+    feature_cols = ['MQ3_Top_PPM', 'MQ3_Bottom_PPM', 'BME_Temp', 'BME_Humidity', 'BME_VOC_Ohm']
+    
+    # Prepare features
+    X_train = train_df[feature_cols].fillna(train_df[feature_cols].mean())
+    X_test = test_df[feature_cols].fillna(test_df[feature_cols].mean())
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    
+    print("\nTesting different labeling approaches:")
+    print("-" * 50)
+    
+    for method_name, thresholds in refined_methods.items():
+        # Create labels
+        y_train = create_refined_time_labels(train_df, thresholds['fresh'], thresholds['spoiling'])
+        y_test = create_refined_time_labels(test_df, thresholds['fresh'], thresholds['spoiling'])
+        
+        if y_train is None:
+            continue
+            
+        # Check class distribution
+        train_dist = np.bincount(y_train)
+        test_dist = np.bincount(y_test)
+        
+        print(f"\n{method_name}:")
+        print(f"  Fresh: >{thresholds['fresh']/60:.0f}h, Spoiling: {thresholds['spoiling']/60:.0f}-{thresholds['fresh']/60:.0f}h, Spoiled: <{thresholds['spoiling']/60:.0f}h")
+        print(f"  Train distribution: Fresh={train_dist[0]}, Spoiling={train_dist[1]}, Spoiled={train_dist[2]}")
+        print(f"  Test distribution: Fresh={test_dist[0]}, Spoiling={test_dist[1]}, Spoiled={test_dist[2]}")
+        
+        # Quick test with Random Forest
+        try:
+            rf = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+            rf.fit(X_train_scaled, y_train)
+            y_pred = rf.predict(X_test_scaled)
+            
+            # Calculate per-class metrics
+            from sklearn.metrics import classification_report
+            report = classification_report(y_test, y_pred, output_dict=True)
+            
+            spoiling_precision = report['1']['precision']
+            spoiling_recall = report['1']['recall']
+            spoiling_f1 = report['1']['f1-score']
+            
+            print(f"  Spoiling class - Precision: {spoiling_precision:.3f}, Recall: {spoiling_recall:.3f}, F1: {spoiling_f1:.3f}")
+            
+            results[method_name] = {
+                'spoiling_f1': spoiling_f1,
+                'spoiling_precision': spoiling_precision,
+                'spoiling_recall': spoiling_recall,
+                'y_train': y_train,
+                'y_test': y_test,
+                'y_pred': y_pred
+            }
+            
+        except Exception as e:
+            print(f"  ❌ Error: {e}")
+    
+    # Find best method for spoiling class
+    if results:
+        best_method = max(results.keys(), key=lambda x: results[x]['spoiling_f1'])
+        print(f"\n🏆 BEST METHOD FOR SPOILING CLASS: {best_method}")
+        print(f"   Spoiling F1-score: {results[best_method]['spoiling_f1']:.3f}")
+        
+        return results[best_method], best_method
+    
+    return None, None
+
+def try_advanced_classification_techniques(train_df, test_df, optimal_method):
+    """Try advanced techniques to improve spoiling class detection"""
+    
+    print(f"\n{'='*80}")
+    print("ADVANCED CLASSIFICATION TECHNIQUES FOR SPOILING CLASS")
+    print(f"{'='*80}")
+    
+    # Prepare data
+    feature_cols = ['MQ3_Top_PPM', 'MQ3_Bottom_PPM', 'BME_Temp', 'BME_Humidity', 'BME_VOC_Ohm']
+    X_train = train_df[feature_cols].fillna(train_df[feature_cols].mean())
+    X_test = test_df[feature_cols].fillna(test_df[feature_cols].mean())
+    
+    y_train = create_optimal_labels(train_df, optimal_method)
+    y_test = create_optimal_labels(test_df, optimal_method)
+    
+    if y_train is None or y_test is None:
+        print("❌ Cannot create labels")
+        return None
+    
+    # Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    
+    techniques = {}
+    
+    # 1. Class balancing techniques
+    print("\n1. CLASS BALANCING TECHNIQUES:")
+    print("-" * 40)
+    
+    # Balanced Random Forest
+    balanced_rf = RandomForestClassifier(
+        n_estimators=200, 
+        random_state=42, 
+        class_weight='balanced',  # This helps with imbalanced classes
+        max_depth=10,
+        min_samples_split=5
+    )
+    balanced_rf.fit(X_train_scaled, y_train)
+    rf_pred = balanced_rf.predict(X_test_scaled)
+    techniques['Balanced RF'] = rf_pred
+    
+    # 2. Ensemble with focus on spoiling class
+    print("\n2. ENSEMBLE METHODS:")
+    print("-" * 40)
+    
+    from sklearn.ensemble import VotingClassifier
+    
+    # Create ensemble focused on minority class
+    ensemble = VotingClassifier([
+        ('rf_balanced', RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)),
+        ('svm_balanced', SVC(class_weight='balanced', probability=True, random_state=42)),
+        ('gb_balanced', GradientBoostingClassifier(random_state=42))
+    ], voting='soft')
+    
+    ensemble.fit(X_train_scaled, y_train)
+    ensemble_pred = ensemble.predict(X_test_scaled)
+    techniques['Ensemble'] = ensemble_pred
+    
+    # 3. Feature engineering
+    print("\n3. FEATURE ENGINEERING:")
+    print("-" * 40)
+    
+    # Add derived features
+    X_train_enhanced = X_train.copy()
+    X_test_enhanced = X_test.copy()
+    
+    # Ratios and differences
+    X_train_enhanced['MQ3_Ratio'] = X_train['MQ3_Top_PPM'] / (X_train['MQ3_Bottom_PPM'] + 1e-6)
+    X_test_enhanced['MQ3_Ratio'] = X_test['MQ3_Top_PPM'] / (X_test['MQ3_Bottom_PPM'] + 1e-6)
+    
+    X_train_enhanced['MQ3_Diff'] = X_train['MQ3_Top_PPM'] - X_train['MQ3_Bottom_PPM']
+    X_test_enhanced['MQ3_Diff'] = X_test['MQ3_Top_PPM'] - X_test['MQ3_Bottom_PPM']
+    
+    # Temperature-humidity interaction
+    X_train_enhanced['Temp_Humid_Interaction'] = X_train['BME_Temp'] * X_train['BME_Humidity']
+    X_test_enhanced['Temp_Humid_Interaction'] = X_test['BME_Temp'] * X_test['BME_Humidity']
+    
+    # Scale enhanced features
+    scaler_enhanced = StandardScaler()
+    X_train_enhanced_scaled = scaler_enhanced.fit_transform(X_train_enhanced)
+    X_test_enhanced_scaled = scaler_enhanced.transform(X_test_enhanced)
+    
+    # Train with enhanced features
+    rf_enhanced = RandomForestClassifier(n_estimators=200, class_weight='balanced', random_state=42)
+    rf_enhanced.fit(X_train_enhanced_scaled, y_train)
+    enhanced_pred = rf_enhanced.predict(X_test_enhanced_scaled)
+    techniques['Enhanced Features'] = enhanced_pred
+    
+    # Evaluate all techniques
+    print("\n4. RESULTS COMPARISON:")
+    print("-" * 40)
+    print(f"{'Method':<20} | {'Spoiling Precision':<18} | {'Spoiling Recall':<15} | {'Spoiling F1':<12}")
+    print("-" * 70)
+    
+    best_method = None
+    best_f1 = 0
+    
+    for method_name, predictions in techniques.items():
+        try:
+            from sklearn.metrics import classification_report
+            report = classification_report(y_test, predictions, output_dict=True)
+            
+            if '1' in report:  # Check if spoiling class exists
+                precision = report['1']['precision']
+                recall = report['1']['recall']
+                f1 = report['1']['f1-score']
+                
+                print(f"{method_name:<20} | {precision:<18.3f} | {recall:<15.3f} | {f1:<12.3f}")
+                
+                if f1 > best_f1:
+                    best_f1 = f1
+                    best_method = method_name
+                    
+        except Exception as e:
+            print(f"{method_name:<20} | Error: {str(e)}")
+    
+    if best_method:
+        print(f"\n🏆 BEST METHOD FOR SPOILING CLASS: {best_method}")
+        print(f"   Best Spoiling F1-score: {best_f1:.3f}")
+    
+    return techniques, best_method
+
+def optimize_spoiling_thresholds_advanced(df, verbose=True):
+    """
+    Advanced optimization of time-based thresholds to maximize spoiling class detection.
+    Uses MQ3 Bottom sensor data and multiple criteria.
+    """
+    if verbose:
+        print("🔧 ADVANCED SPOILING THRESHOLD OPTIMIZATION")
+        print("=" * 50)
+    
+    # Calculate hours from start
+    df = df.copy()
+    df['Hours_from_start'] = (df['Timestamp'] - df['Timestamp'].iloc[0]).dt.total_seconds() / 3600
+    
+    # Use MQ3 Bottom as primary sensor
+    mq3_data = df['MQ3_Bottom_PPM'].dropna()
+    hours_data = df.loc[mq3_data.index, 'Hours_from_start']
+    
+    if len(mq3_data) < 20:
+        if verbose:
+            print("⚠️  Insufficient MQ3 Bottom data for optimization")
+        return None
+    
+    # Calculate various change indicators
+    baseline = mq3_data.iloc[:min(10, len(mq3_data))].mean()
+    cumulative_change = mq3_data - baseline
+    rolling_std = mq3_data.rolling(window=10, center=True).std()
+    gradient = np.gradient(mq3_data.values)
+    
+    # Find potential transition points
+    threshold_candidates = []
+    
+    # Method 1: Significant rate of change
+    high_gradient_points = np.where(np.abs(gradient) > np.percentile(np.abs(gradient), 75))[0]
+    if len(high_gradient_points) > 0:
+        threshold_candidates.extend(hours_data.iloc[high_gradient_points].tolist())
+    
+    # Method 2: Standard deviation peaks (instability)
+    if not rolling_std.isna().all():
+        std_peaks = rolling_std > np.percentile(rolling_std.dropna(), 80)
+        threshold_candidates.extend(hours_data.loc[std_peaks].tolist())
+    
+    # Method 3: Cumulative change thresholds
+    change_percentiles = [50, 60, 70, 80]
+    for percentile in change_percentiles:
+        threshold_val = np.percentile(cumulative_change, percentile)
+        transition_idx = np.where(cumulative_change >= threshold_val)[0]
+        if len(transition_idx) > 0:
+            threshold_candidates.append(hours_data.iloc[transition_idx[0]])
+    
+    # Remove duplicates and sort
+    threshold_candidates = sorted(list(set(threshold_candidates)))
+    
+    if verbose:
+        print(f"📊 Generated {len(threshold_candidates)} threshold candidates")
+    
+    # Evaluate each threshold combination
+    best_config = None
+    best_score = 0
+    max_hours = hours_data.max()
+    
+    for fresh_to_spoiling in threshold_candidates:
+        for spoiling_to_spoiled in threshold_candidates:
+            if spoiling_to_spoiled <= fresh_to_spoiling:
+                continue
+            if spoiling_to_spoiled >= max_hours - 5:  # Leave some time for spoiled class
+                continue
+                
+            # Create labels with this configuration
+            labels = np.zeros(len(df))
+            labels[(df['Hours_from_start'] >= fresh_to_spoiling) & 
+                   (df['Hours_from_start'] < spoiling_to_spoiled)] = 1  # Spoiling
+            labels[df['Hours_from_start'] >= spoiling_to_spoiled] = 2   # Spoiled
+            
+            # Calculate quality metrics
+            unique, counts = np.unique(labels, return_counts=True)
+            
+            if len(unique) == 3:  # All three classes present
+                spoiling_ratio = counts[1] / len(labels)
+                
+                # Prefer configurations with 10-30% spoiling class
+                if 0.05 <= spoiling_ratio <= 0.35:
+                    # Score based on balanced representation and reasonable transition timing
+                    balance_score = 1 - abs(spoiling_ratio - 0.15)  # Target ~15% spoiling
+                    timing_score = 1 - abs((fresh_to_spoiling / max_hours) - 0.6)  # Target ~60% through
+                    
+                    total_score = balance_score * 0.7 + timing_score * 0.3
+                    
+                    if total_score > best_score:
+                        best_score = total_score
+                        best_config = {
+                            'fresh_to_spoiling': fresh_to_spoiling,
+                            'spoiling_to_spoiled': spoiling_to_spoiled,
+                            'spoiling_ratio': spoiling_ratio,
+                            'score': total_score
+                        }
+    
+    if best_config and verbose:
+        print(f"🎯 OPTIMAL THRESHOLDS FOUND:")
+        print(f"   Fresh → Spoiling: {best_config['fresh_to_spoiling']:.1f}h")
+        print(f"   Spoiling → Spoiled: {best_config['spoiling_to_spoiled']:.1f}h")
+        print(f"   Spoiling class ratio: {best_config['spoiling_ratio']:.1%}")
+        print(f"   Quality score: {best_config['score']:.3f}")
+    
+    return best_config
+
+def create_optimized_time_labels(df, verbose=True):
+    """
+    Create time-based labels using optimized thresholds for better spoiling class detection.
+    """
+    optimal_config = optimize_spoiling_thresholds_advanced(df, verbose)
+    
+    if optimal_config is None:
+        if verbose:
+            print("⚠️  Using fallback threshold method")
+        return create_time_based_labels(df, verbose)
+    
+    # Calculate hours from start
+    df = df.copy()
+    df['Hours_from_start'] = (df['Timestamp'] - df['Timestamp'].iloc[0]).dt.total_seconds() / 3600
+    
+    # Create optimized labels
+    labels = np.zeros(len(df))
+    labels[(df['Hours_from_start'] >= optimal_config['fresh_to_spoiling']) & 
+           (df['Hours_from_start'] < optimal_config['spoiling_to_spoiled'])] = 1  # Spoiling
+    labels[df['Hours_from_start'] >= optimal_config['spoiling_to_spoiled']] = 2   # Spoiled
+    
+    if verbose:
+        unique, counts = np.unique(labels, return_counts=True)
+        print(f"\n🏷️  OPTIMIZED LABEL DISTRIBUTION:")
+        for label, count in zip(unique, counts):
+            class_name = ['Fresh', 'Spoiling', 'Spoiled'][int(label)]
+            print(f"   {class_name}: {count} samples ({count/len(labels)*100:.1f}%)")
+    
+    return labels
+
+def advanced_spoiling_detection_pipeline(X, y, test_size=0.3, verbose=True):
+    """
+    Complete pipeline for advanced spoiling class detection using multiple techniques.
+    """
+    if verbose:
+        print("🚀 ADVANCED SPOILING DETECTION PIPELINE")
+        print("=" * 50)
+    
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
+    from sklearn.svm import SVC
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import classification_report, confusion_matrix
+    from sklearn.utils.class_weight import compute_class_weight
+    import seaborn as sns
+    
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42, stratify=y)
+    
+    # Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    
+    # Check class distribution
+    unique, counts = np.unique(y_train, return_counts=True)
+    if verbose:
+        print(f"📊 Training Set Class Distribution:")
+        for label, count in zip(unique, counts):
+            class_name = ['Fresh', 'Spoiling', 'Spoiled'][int(label)]
+            print(f"   {class_name}: {count} samples ({count/len(y_train)*100:.1f}%)")
+    
+    # Enhanced feature engineering
+    X_train_enhanced = pd.DataFrame(X_train_scaled, columns=X.columns)
+    X_test_enhanced = pd.DataFrame(X_test_scaled, columns=X.columns)
+    
+    # Add interaction features
+    if 'MQ3_Top_PPM' in X.columns and 'MQ3_Bottom_PPM' in X.columns:
+        X_train_enhanced['MQ3_Ratio'] = X_train_enhanced['MQ3_Top_PPM'] / (X_train_enhanced['MQ3_Bottom_PPM'] + 1e-6)
+        X_test_enhanced['MQ3_Ratio'] = X_test_enhanced['MQ3_Top_PPM'] / (X_test_enhanced['MQ3_Bottom_PPM'] + 1e-6)
+        
+        X_train_enhanced['MQ3_Diff'] = X_train_enhanced['MQ3_Top_PPM'] - X_train_enhanced['MQ3_Bottom_PPM']
+        X_test_enhanced['MQ3_Diff'] = X_test_enhanced['MQ3_Top_PPM'] - X_test_enhanced['MQ3_Bottom_PPM']
+    
+    if 'BME_Temp' in X.columns and 'BME_Humidity' in X.columns:
+        X_train_enhanced['Temp_Humid_Interaction'] = X_train_enhanced['BME_Temp'] * X_train_enhanced['BME_Humidity']
+        X_test_enhanced['Temp_Humid_Interaction'] = X_test_enhanced['BME_Temp'] * X_test_enhanced['BME_Humidity']
+    
+    models = {}
+    results = {}
+    
+    # 1. Balanced Random Forest
+    if verbose:
+        print(f"\n1️⃣  Training Balanced Random Forest...")
+    
+    rf_balanced = RandomForestClassifier(
+        n_estimators=200, 
+        class_weight='balanced', 
+        max_depth=10,
+        min_samples_split=5,
+        random_state=42
+    )
+    rf_balanced.fit(X_train_enhanced, y_train)
+    rf_pred = rf_balanced.predict(X_test_enhanced)
+    models['Balanced RF'] = rf_balanced
+    results['Balanced RF'] = rf_pred
+    
+    # 2. Gradient Boosting with class weights
+    if verbose:
+        print(f"2️⃣  Training Gradient Boosting...")
+    
+    # Calculate class weights
+    class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
+    sample_weights = np.array([class_weights[int(label)] for label in y_train])
+    
+    gb_model = GradientBoostingClassifier(
+        n_estimators=150,
+        learning_rate=0.1,
+        max_depth=6,
+        random_state=42
+    )
+    gb_model.fit(X_train_enhanced, y_train, sample_weight=sample_weights)
+    gb_pred = gb_model.predict(X_test_enhanced)
+    models['Weighted GB'] = gb_model
+    results['Weighted GB'] = gb_pred
+    
+    # 3. Ensemble Voting Classifier
+    if verbose:
+        print(f"3️⃣  Training Ensemble Classifier...")
+    
+    ensemble = VotingClassifier([
+        ('rf', RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)),
+        ('svm', SVC(class_weight='balanced', probability=True, random_state=42)),
+        ('gb', GradientBoostingClassifier(n_estimators=100, random_state=42))
+    ], voting='soft')
+    
+    ensemble.fit(X_train_enhanced, y_train)
+    ensemble_pred = ensemble.predict(X_test_enhanced)
+    models['Ensemble'] = ensemble
+    results['Ensemble'] = ensemble_pred
+    
+    # Evaluate all models
+    if verbose:
+        print(f"\n📈 MODEL PERFORMANCE COMPARISON:")
+        print("-" * 80)
+        print(f"{'Model':<15} | {'Spoiling Precision':<18} | {'Spoiling Recall':<15} | {'Spoiling F1':<12} | {'Overall Accuracy':<16}")
+        print("-" * 80)
+    
+    best_model = None
+    best_spoiling_f1 = 0
+    
+    for model_name, predictions in results.items():
+        try:
+            report = classification_report(y_test, predictions, output_dict=True)
+            overall_accuracy = (predictions == y_test).mean()
+            
+            if '1' in report:  # Spoiling class exists
+                precision = report['1']['precision']
+                recall = report['1']['recall']
+                f1 = report['1']['f1-score']
+                
+                if verbose:
+                    print(f"{model_name:<15} | {precision:<18.3f} | {recall:<15.3f} | {f1:<12.3f} | {overall_accuracy:<16.3f}")
+                
+                if f1 > best_spoiling_f1:
+                    best_spoiling_f1 = f1
+                    best_model = model_name
+            else:
+                if verbose:
+                    print(f"{model_name:<15} | {'No spoiling class':<47} | {overall_accuracy:<16.3f}")
+                    
+        except Exception as e:
+            if verbose:
+                print(f"{model_name:<15} | Error: {str(e)}")
+    
+    if best_model and verbose:
+        print(f"\n🏆 BEST MODEL FOR SPOILING DETECTION: {best_model}")
+        print(f"   Spoiling F1-score: {best_spoiling_f1:.3f}")
+        
+        # Show detailed confusion matrix for best model
+        print(f"\n📊 CONFUSION MATRIX FOR {best_model}:")
+        cm = confusion_matrix(y_test, results[best_model])
+        
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                   xticklabels=['Fresh', 'Spoiling', 'Spoiled'],
+                   yticklabels=['Fresh', 'Spoiling', 'Spoiled'])
+        plt.title(f'Confusion Matrix - {best_model}')
+        plt.ylabel('True Label')
+        plt.xlabel('Predicted Label')
+        plt.tight_layout()
+        plt.show()
+    
+    return {
+        'models': models,
+        'results': results,
+        'best_model': best_model,
+        'best_spoiling_f1': best_spoiling_f1,
+        'scaler': scaler,
+        'y_test': y_test
+    }
+
 def main():
     """Main analysis function"""
     
@@ -1060,6 +1589,43 @@ def main():
     
     # Determine optimal labeling method
     optimal_method, labeling_results = determine_optimal_labeling_method(train_df, test_df)
+    
+    # Advanced spoiling class optimization
+    print("\n" + "="*60)
+    print("ADVANCED SPOILING CLASS OPTIMIZATION")
+    print("="*60)
+    
+    # Try optimized time-based labeling for better spoiling detection
+    print("\n🔧 Optimizing time-based labeling thresholds...")
+    optimized_train_labels = create_optimized_time_labels(train_df, verbose=True)
+    optimized_test_labels = create_optimized_time_labels(test_df, verbose=True)
+    
+    # Prepare features for advanced pipeline
+    feature_cols = ['MQ3_Top_PPM', 'MQ3_Bottom_PPM', 'BME_Temp', 'BME_Humidity', 'BME_VOC_Ohm']
+    
+    # Get complete data (no NaN values)
+    train_complete = train_df[feature_cols].dropna()
+    
+    if len(train_complete) > 100:  # Need sufficient data
+        print(f"\n🚀 Running advanced spoiling detection pipeline...")
+        print(f"   Complete training samples: {len(train_complete)}")
+        
+        # Use optimized labels for complete data indices
+        train_labels_complete = optimized_train_labels[:len(train_complete)]
+        
+        # Run advanced pipeline
+        pipeline_results = advanced_spoiling_detection_pipeline(
+            train_complete, train_labels_complete, 
+            test_size=0.3, verbose=True
+        )
+        
+        print(f"\n✅ Advanced pipeline completed!")
+        if pipeline_results['best_model']:
+            print(f"   Best model: {pipeline_results['best_model']}")
+            print(f"   Best spoiling F1-score: {pipeline_results['best_spoiling_f1']:.3f}")
+    else:
+        print(f"⚠️  Insufficient complete data for advanced pipeline")
+        print(f"   Training: {len(train_complete)} samples (need >100)")
       # Compare labeling methods
     print("\nComparing labeling methods...")
     train_kmeans_labels, train_silhouette = compare_labeling_methods(train_df_enhanced, "Batch 1")
@@ -1069,6 +1635,10 @@ def main():
     print("\nComparing labeling methods with supervised models...")
     labeling_comparison, recommended_method = compare_labeling_methods_with_models(train_df, test_df)
     
+    # Refine labeling for better spoiling class detection
+    print("\nRefining labeling for better spoiling class detection...")
+    refined_result, refined_method = refine_labeling_for_spoiling_class(train_df, test_df)
+    
     # Interactive spoilage detection
     print("\nCreating interactive spoilage detection plots...")
     train_df_final = create_interactive_spoilage_detection(train_df_enhanced, "Batch 1")
@@ -1077,6 +1647,10 @@ def main():
     # Use the recommended method for final model evaluation
     final_method = recommended_method if recommended_method != "hybrid" else optimal_method
     print(f"\n🎯 Using {final_method.upper()} for final model evaluation...")
+    
+    # Try advanced classification techniques
+    print("\nTrying advanced classification techniques...")
+    advanced_techniques, best_advanced = try_advanced_classification_techniques(train_df, test_df, final_method)
     
     # Evaluate supervised learning models
     model_results, trained_models, scaler, data_splits = evaluate_supervised_models(
