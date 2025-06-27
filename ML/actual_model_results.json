@@ -1,0 +1,72 @@
+{
+  "Random Forest": {
+    "test_accuracy": 0.7777777777777778,
+    "train_accuracy": 1.0,
+    "test_f1": 0.7638000450984566,
+    "train_f1": 1.0,
+    "cv_mean": 0.8717647483080967,
+    "cv_std": 0.15715797280417904,
+    "overfitting_score": 0.2222222222222222,
+    "is_overfitting": false
+  },
+  "Gradient Boosting": {
+    "test_accuracy": 0.6587301587301587,
+    "train_accuracy": 1.0,
+    "test_f1": 0.610452608260261,
+    "train_f1": 1.0,
+    "cv_mean": 0.8323931867083916,
+    "cv_std": 0.21013882874836304,
+    "overfitting_score": 0.3412698412698413,
+    "is_overfitting": true
+  },
+  "Logistic Regression": {
+    "test_accuracy": 0.35034013605442177,
+    "train_accuracy": 1.0,
+    "test_f1": 0.18178858445141283,
+    "train_f1": 1.0,
+    "cv_mean": 0.8983615884858418,
+    "cv_std": 0.1267427492786991,
+    "overfitting_score": 0.6496598639455782,
+    "is_overfitting": true
+  },
+  "Support Vector Machine": {
+    "test_accuracy": 0.5212585034013606,
+    "train_accuracy": 1.0,
+    "test_f1": 0.4208409552411402,
+    "train_f1": 1.0,
+    "cv_mean": 0.8827944753196485,
+    "cv_std": 0.14467538113007367,
+    "overfitting_score": 0.4787414965986394,
+    "is_overfitting": true
+  },
+  "K-Nearest Neighbors": {
+    "test_accuracy": 0.5147392290249433,
+    "train_accuracy": 1.0,
+    "test_f1": 0.3745840788097903,
+    "train_f1": 1.0,
+    "cv_mean": 0.8850579594584307,
+    "cv_std": 0.14229107222811183,
+    "overfitting_score": 0.4852607709750567,
+    "is_overfitting": true
+  },
+  "Decision Tree": {
+    "test_accuracy": 0.35034013605442177,
+    "train_accuracy": 1.0,
+    "test_f1": 0.18178858445141283,
+    "train_f1": 1.0,
+    "cv_mean": 0.8649746965793301,
+    "cv_std": 0.1660165126141371,
+    "overfitting_score": 0.6496598639455782,
+    "is_overfitting": true
+  },
+  "Neural Network": {
+    "test_accuracy": 0.35034013605442177,
+    "train_accuracy": 0.9985851726089418,
+    "test_f1": 0.18178858445141283,
+    "train_f1": 0.9985848903222566,
+    "cv_mean": 0.8878888172103329,
+    "cv_std": 0.13886138743987275,
+    "overfitting_score": 0.64824503655452,
+    "is_overfitting": true
+  }
+}
