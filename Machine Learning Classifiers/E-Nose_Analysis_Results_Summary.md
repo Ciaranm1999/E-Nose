@@ -78,15 +78,15 @@ Spoiled (Class 2):  Final periods with clear spoilage indicators (48+ hours)
 
 ### Model Comparison - Test Accuracy, F1 Scores & ROC AUC
 
-| Model | Test Accuracy | Train Accuracy | F1 Score (Weighted) | ROC AUC | Overfitting Score | Status |
-|-------|---------------|----------------|---------------------|---------|-------------------|---------|
-| **Random Forest** | **0.778** | 1.000 | **0.764** | **0.918** | 0.222 | ✅ **Good** |
-| **Gradient Boosting** | **0.659** | 1.000 | **0.610** | **0.757** | 0.341 | ❌ Overfitting |
-| **Support Vector Machine** | **0.521** | 1.000 | **0.421** | **0.843** | 0.479 | ❌ Overfitting |
-| **K-Nearest Neighbors** | **0.515** | 1.000 | **0.375** | **0.628** | 0.485 | ❌ Overfitting |
-| **Logistic Regression** | **0.350** | 1.000 | **0.182** | **0.489** | 0.650 | ❌ Overfitting |
-| **Decision Tree** | **0.350** | 1.000 | **0.182** | **0.500** | 0.650 | ❌ Overfitting |
-| **Neural Network** | **0.350** | 0.999 | **0.182** | **0.430** | 0.648 | ❌ Overfitting |
+| Model                 | Test Accuracy | Train Accuracy | F1 Score (Weighted) | ROC AUC |
+|-----------------------|--------------|---------------|---------------------|---------|
+| **Random Forest**         | **0.778**        | 1.000         | **0.764**               | **0.918**   |
+| **Gradient Boosting**     | **0.659**        | 1.000         | **0.610**               | **0.757**   |
+| **Support Vector Machine**| **0.521**        | 1.000         | **0.421**               | **0.843**   |
+| **K-Nearest Neighbors**   | **0.515**        | 1.000         | **0.375**               | **0.628**   |
+| **Logistic Regression**   | **0.350**        | 1.000         | **0.182**               | **0.489**   |
+| **Decision Tree**         | **0.350**        | 1.000         | **0.182**               | **0.500**   |
+| **Neural Network**        | **0.350**        | 0.999         | **0.182**               | **0.430**   |
 
 ### ⚠️ Critical Finding: Widespread Overfitting
 **6 out of 7 models** show severe overfitting (>30% train-test gap), indicating:
