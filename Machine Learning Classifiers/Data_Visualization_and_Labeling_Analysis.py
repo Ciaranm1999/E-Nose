@@ -13,8 +13,10 @@ from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score, roc_curve, auc
+from sklearn.preprocessing import label_binarize
 from sklearn.model_selection import cross_val_score, StratifiedKFold
+from itertools import cycle
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -443,18 +445,12 @@ def determine_optimal_labeling_method(train_df, test_df):
     print(f"\nOPTIMAL LABELING RECOMMENDATION:")
     print("-" * 50)
     
-    if avg_silhouette > 0.4:
-        optimal_method = "K-means clustering"
-        print(f"Use K-MEANS CLUSTERING (3 clusters)")
-        print(f"   Reason: High silhouette scores ({avg_silhouette:.3f}) indicate natural data groupings")
-    elif 'Time_to_Spoilage_Minutes' in train_df.columns:
-        optimal_method = "time-based"
-        print(f"Use TIME-BASED LABELING")
-        print(f"   Reason: Moderate clustering performance, time-based labels available")
-    else:
-        optimal_method = "hybrid"
-        print(f"Use HYBRID APPROACH")
-        print(f"   Reason: Manual labeling with visual inspection recommended")
+    optimal_method = "time-based"
+    print(f"Use TIME-BASED LABELING")
+    print(f"   Reason: Domain knowledge-driven classification using spoilage timeline")
+    print(f"   Fresh: > 48 hours before spoilage")
+    print(f"   Spoiling: 24-48 hours before spoilage")
+    print(f"   Spoiled: < 24 hours before spoilage")
     
     return optimal_method, results
 
@@ -664,6 +660,30 @@ def evaluate_supervised_models(train_df, test_df, optimal_method, overfitting_th
             train_f1 = f1_score(y_train, train_pred, average='weighted')
             test_f1 = f1_score(y_test, test_pred, average='weighted')
             
+            # ROC AUC (multiclass using one-vs-rest)
+            roc_auc_score = None
+            try:
+                if hasattr(clf, "predict_proba"):
+                    y_proba = clf.predict_proba(X_test_scaled)
+                    n_classes = len(np.unique(y_test))
+                    if n_classes > 2:
+                        # Multiclass ROC AUC (one-vs-rest)
+                        from sklearn.metrics import roc_auc_score
+                        roc_auc_score = roc_auc_score(y_test, y_proba, multi_class='ovr', average='weighted')
+                    else:
+                        # Binary classification
+                        roc_auc_score = roc_auc_score(y_test, y_proba[:, 1])
+                elif hasattr(clf, "decision_function"):
+                    y_scores = clf.decision_function(X_test_scaled)
+                    if len(np.unique(y_test)) > 2:
+                        from sklearn.metrics import roc_auc_score
+                        roc_auc_score = roc_auc_score(y_test, y_scores, multi_class='ovr', average='weighted')
+                    else:
+                        roc_auc_score = roc_auc_score(y_test, y_scores)
+            except Exception as e:
+                print(f"  Note: Could not calculate ROC AUC for {name}: {e}")
+                roc_auc_score = None
+            
             results[name] = {
                 'train_accuracy': train_acc,
                 'test_accuracy': test_acc,
@@ -673,6 +693,7 @@ def evaluate_supervised_models(train_df, test_df, optimal_method, overfitting_th
                 'is_overfitting': is_overfitting,
                 'train_f1': train_f1,
                 'test_f1': test_f1,
+                'roc_auc': roc_auc_score,
                 'test_predictions': test_pred,
                 'train_predictions': train_pred
             }
@@ -683,6 +704,10 @@ def evaluate_supervised_models(train_df, test_df, optimal_method, overfitting_th
             print(f"  Train Accuracy: {train_acc:.3f}")
             print(f"  Test Accuracy: {test_acc:.3f}")
             print(f"  CV Score: {cv_scores.mean():.3f} +/- {cv_scores.std():.3f}")
+            print(f"  Train F1: {train_f1:.3f}")
+            print(f"  Test F1: {test_f1:.3f}")
+            if roc_auc_score is not None:
+                print(f"  ROC AUC: {roc_auc_score:.3f}")
             print(f"  Overfitting Score: {overfitting_score:.3f}")
             if is_overfitting:
                 print(f"  WARNING: OVERFITTING DETECTED!")
@@ -1011,6 +1036,98 @@ def map_kmeans_to_spoilage_labels(df, kmeans_labels):
     
     return mapped_labels
 
+def plot_roc_curves(models, X_test, y_test):
+    """
+    Plot ROC curves for all models using one-vs-rest approach for multiclass classification
+    """
+    n_classes = len(np.unique(y_test))
+    
+    # Binarize the output labels for multiclass ROC
+    y_test_binarized = label_binarize(y_test, classes=np.unique(y_test))
+    
+    # Calculate number of figures needed (4 models per figure)
+    n_figures = (len(models) + 3) // 4
+    
+    for fig_idx in range(n_figures):
+        plt.figure(figsize=(16, 12))
+        
+        # Get models for this figure
+        start_idx = fig_idx * 4
+        end_idx = min(start_idx + 4, len(models))
+        current_models = list(models.items())[start_idx:end_idx]
+        
+        for idx, (name, model) in enumerate(current_models):
+            plt.subplot(2, 2, idx + 1)
+            
+            try:
+                # Get prediction probabilities
+                if hasattr(model, "predict_proba"):
+                    y_proba = model.predict_proba(X_test)
+                elif hasattr(model, "decision_function"):
+                    y_proba = model.decision_function(X_test)
+                    # Normalize decision function output to [0,1]
+                    from sklearn.preprocessing import MinMaxScaler
+                    scaler = MinMaxScaler()
+                    y_proba = scaler.fit_transform(y_proba)
+                else:
+                    print(f"Model {name} doesn't support probability prediction. Skipping ROC curve.")
+                    plt.text(0.5, 0.5, f'{name}\nNo probability\nsupport', 
+                            ha='center', va='center', transform=plt.gca().transAxes, fontsize=12)
+                    plt.xlim([0, 1])
+                    plt.ylim([0, 1])
+                    continue
+                
+                # Colors for different classes
+                colors = cycle(['blue', 'red', 'green', 'orange', 'purple', 'brown'])
+                
+                # Calculate ROC curve for each class
+                fpr = dict()
+                tpr = dict()
+                roc_auc = dict()
+                
+                for i in range(n_classes):
+                    if n_classes == 2:
+                        # Binary classification
+                        fpr[i], tpr[i], _ = roc_curve(y_test_binarized[:, i], y_proba[:, i])
+                    else:
+                        # Multiclass classification
+                        if y_proba.shape[1] >= n_classes:
+                            fpr[i], tpr[i], _ = roc_curve(y_test_binarized[:, i], y_proba[:, i])
+                        else:
+                            # Handle case where model output doesn't match number of classes
+                            continue
+                    roc_auc[i] = auc(fpr[i], tpr[i])
+                
+                # Plot ROC curves for each class
+                class_names = ['Day 0', 'Day 1', 'Day 2', 'Day 3', 'Day 4']
+                for i, color in zip(range(n_classes), colors):
+                    if i in fpr:
+                        class_name = class_names[i] if i < len(class_names) else f'Class {i}'
+                        plt.plot(fpr[i], tpr[i], color=color, lw=2,
+                                label=f'{class_name} (AUC = {roc_auc[i]:.2f})')
+                
+                # Plot diagonal line
+                plt.plot([0, 1], [0, 1], 'k--', lw=2, alpha=0.5)
+                
+                plt.xlim([0.0, 1.0])
+                plt.ylim([0.0, 1.05])
+                plt.xlabel('False Positive Rate')
+                plt.ylabel('True Positive Rate')
+                plt.title(f'ROC Curves - {name}')
+                plt.legend(loc="lower right", fontsize=8)
+                plt.grid(True, alpha=0.3)
+                
+            except Exception as e:
+                print(f"Error plotting ROC curve for {name}: {str(e)}")
+                plt.text(0.5, 0.5, f'{name}\nError plotting\nROC curve', 
+                        ha='center', va='center', transform=plt.gca().transAxes, fontsize=12)
+                plt.xlim([0, 1])
+                plt.ylim([0, 1])
+        
+        plt.tight_layout()
+        plt.suptitle(f'ROC Curves - Models {start_idx+1}-{end_idx}', fontsize=16, y=1.02)
+        plt.show()
+
 def main():
     """Main analysis function"""
     
@@ -1056,7 +1173,7 @@ def main():
     
     # Evaluate supervised learning models
     model_results, trained_models, scaler, data_splits = evaluate_supervised_models(
-        train_df, test_df, optimal_method)
+        train_df, test_df, "time-based")
     
     if model_results:
         X_train_scaled, X_test_scaled, y_train, y_test = data_splits
@@ -1074,6 +1191,10 @@ def main():
         # Visualize ALL confusion matrices
         print("\nGenerating confusion matrices for all models...")
         visualize_all_confusion_matrices(model_results, y_train, y_test)
+        
+        # Plot ROC curves for all models
+        print("\nGenerating ROC curves for all models...")
+        plot_roc_curves(trained_models, X_test_scaled, y_test)
     
     return train_df_final, test_df_final, model_results
 

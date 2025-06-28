@@ -24,7 +24,8 @@ def capture_and_save_results():
                     'cv_mean': float(results['cv_mean']),
                     'cv_std': float(results['cv_std']),
                     'overfitting_score': float(results['overfitting_score']),
-                    'is_overfitting': bool(results['is_overfitting'])
+                    'is_overfitting': bool(results['is_overfitting']),
+                    'roc_auc': float(results['roc_auc']) if results['roc_auc'] is not None else None
                 }
         
         # Save to JSON file
@@ -40,6 +41,8 @@ def capture_and_save_results():
             print(f"\n{model_name}:")
             print(f"  Test Accuracy: {metrics['test_accuracy']:.3f}")
             print(f"  Test F1 Score: {metrics['test_f1']:.3f}")
+            if metrics['roc_auc'] is not None:
+                print(f"  ROC AUC: {metrics['roc_auc']:.3f}")
             print(f"  CV Score: {metrics['cv_mean']:.3f} ± {metrics['cv_std']:.3f}")
             print(f"  Overfitting: {'Yes' if metrics['is_overfitting'] else 'No'}")
         
